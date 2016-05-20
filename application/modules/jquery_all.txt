@@ -1,0 +1,598 @@
+///////////////////////////*dashboard*///////////////////////////////////////
+
+    $(document).on('click','#btn-more',function(){
+        var $btn=$(this);
+        var offset= $btn.attr('offset');
+        $.ajax({
+            type:'POST',
+            url:"<?php echo base_url('admin/proses_home/widget_activity_komentar') ?>",
+            data:'offset='+offset,
+            dataType:"json",
+            beforeSend:function(){
+                    $btn.button('loading');
+                },
+            error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+            success:function(data){
+                setTimeout(function(){
+                    $('.btn-block').remove();
+                    for (var i = 0; i < data.komen.length; i++) {
+                        $('.activity_komen-body').append(data.komen[i]);  
+                    };
+                if (data.more) {
+                    $('.btn-more').append(data.more);
+                    console.log(data.more); 
+                }
+                },500);
+
+            }
+        });
+        
+    });
+
+        $(document).on('click','#save-draft',function(){
+            var $btn=$(this);          
+            var draft={
+                judul:$('#qjudul').val(),
+                isi:$('#qisi').val(),
+                ajax_draft:'1'
+            };
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_home/widget_quickdraft') ?>",
+                data: draft,
+                dataType:"json",
+                beforeSend:function(){
+                    $btn.button('loading');
+                },
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(data){
+                    setTimeout(function(){
+                        if (data.drafts) {
+                            $('.isi-drafts').append(data.drafts);
+                            console.log(data); 
+                        }
+                        $('#qjudul').val('');
+                        $('#qisi').val('');
+                        $btn.button('reset');
+                    },500);
+
+                }
+            });
+            
+        });
+
+        $(document).on('click','.link-app',function(){   
+            var tr= $(this).parents('tr');    
+            if ($(this).parents('tr').hasClass('homeunapproved')) {
+                tr.removeClass('homeunapproved');
+                tr.animate({backgroundColor: '#ccf1cd'});
+                tr.animate({backgroundColor: 'white'});
+                tr.removeClass('appm');
+                $(this).addClass('unappm');
+                $(this).text('unapproved');     
+                var data={
+                    id_komen:$(this).attr('id'),
+                    jenis:'approved',
+                    ajax:'2'
+                }
+            }
+            else{
+                tr.animate({backgroundColor: '#fff3e6'});
+                tr.addClass('homeunapproved');
+                $(this).removeClass('unappm');
+                $(this).addClass('appm');
+                $(this).text('approved');
+                var data={
+                    id_komen:$(this).attr('id'),
+                    jenis:'unapproved',
+                    ajax:'2'
+                }
+            }
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_home/activity_template_update_komentar') ?>",
+                data: data,
+                dataType:"json",
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(data){
+                    $('.kpending').text(data.komen_num[0]);
+                    $('.kapprove').text(data.komen_num[1]);
+                    $('.ktrash').text(data.komen_num[2]);
+
+                }
+            });
+            
+        });
+
+        $(document).on('click','.trashm',function(){        
+            var trash={
+                id_komen:$(this).attr('id'),
+                jenis:'trash',
+                ajax:'3'
+            };
+            var kelas=$(this).parents('tr').attr('class');
+            var tr=$(this).parents('tr');
+            tr.removeClass();
+            tr.attr('siblingclass', kelas);
+            $(this).parents('div .komenshow').hide();
+            $(this).parents('div .komenshow').next().show();
+
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_home/activity_template_update_komentar') ?>",
+                data: trash,
+                dataType:"json",
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(data){
+                    $('.kpending').text(data.komen_num[0]);
+                    $('.kapprove').text(data.komen_num[1]);
+                    $('.ktrash').text(data.komen_num[2]);
+
+                }
+            });
+            
+        });
+
+        $(document).on('click','.undo-komen',function(){        
+            var undo={
+                id_komen:$(this).attr('id'),
+                jenis:'undo-trash',
+                ajax:'3'
+            };
+            var siblingclass=$(this).parents('tr').attr('siblingclass');
+            var tr=$(this).parents('tr');
+            tr.attr('siblingclass','');
+            tr.addClass(siblingclass);
+            $(this).parents('div .komentrash').hide();
+            $(this).parents('div .komentrash').prev().show();
+            console.log(siblingclass);
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_home/activity_template_update_komentar') ?>",
+                data: undo,
+                dataType:"json",
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(data){
+                    $('.kpending').text(data.komen_num[0]);
+                    $('.kapprove').text(data.komen_num[1]);
+                    $('.ktrash').text(data.komen_num[2]);
+
+                }
+            });
+            
+        });
+
+///////////////////////////*post*///////////////////////////////////////
+        
+
+
+        $(document).on('click','.quick-edit-a',function(){ 
+                var quick_edit=$('tr.quick-edit'),post_data=[]; 
+                $('tr.massal-edit').hide();
+                $('.data-edit').show();
+                $(this).parents('tr').after(quick_edit);
+                quick_edit.prev().hide();
+                quick_edit.show();
+
+                post_data['pass']=quick_edit.prev().attr('pass');
+                post_data['sticky']=quick_edit.prev().attr('sticky');
+                post_data['id']=quick_edit.prev().attr('id');
+                post_data['komen']=quick_edit.prev().attr('komen');
+                post_data['judul']=quick_edit.prev().find('a.judul_post').text().split("-")[0];
+                post_data['kategori']=quick_edit.prev().find('.kategori_post').attr('id-kategori');
+                post_data['tags']=quick_edit.prev().children('.tag_post').text();
+                post_data['status']=quick_edit.prev().attr('status');;
+
+                if (post_data['judul']!='(no title) ') {
+                    $('input.quick_judul_post').val(post_data['judul']);
+                }else{
+                    $('input.quick_judul_post').val("");
+                }
+                
+                $('input.quick_pass_post').val(post_data['pass']);
+                $('textarea.quick_tag_post').val(post_data['tags']);
+                if (post_data['komen']=='1') {
+                    $('input.quick_komen_post').prop('checked', true);
+                }else{
+                    $('input.quick_komen_post').prop('checked', false);
+                }
+
+                if (post_data['sticky']=='1') {
+                    $('input.quick_sticky_post').prop('checked', true);
+                }else{$('input.quick_sticky_post').prop('checked', false);}
+
+                quick_edit.find('input:radio[name=kategori_post]').each(function() {
+                    if ($(this).val()==post_data['kategori']) {
+                        $(this).prop('checked', true);
+                    }else{
+                        $(this).prop('checked', false);
+                    }
+                });
+                $('select.quick_status_post').val(post_data['status']);
+                quick_edit.attr('id_post',post_data['id']);
+                console.log(post_data);
+
+        });
+
+        $(document).on('click','button.post_quick_update',function(){ 
+            var update_data_quick={};
+            var current=$(this);
+            update_data_quick['id_post']=$('tr.quick-edit').attr('id_post');
+            update_data_quick['judul_post']=$('input.quick_judul_post').val();
+            update_data_quick['status_post']=$('select.quick_status_post').val();
+            update_data_quick['pass_post']=$('input.quick_pass_post').val();
+            if ($('input.quick_komen_post').is(':checked')) {
+                update_data_quick['komen_post']='1';
+            }else{
+                update_data_quick['komen_post']='0';
+            }
+
+            if ($('input.quick_sticky_post').is(':checked')) {
+                update_data_quick['sticky_post']='1';
+            }else{
+                update_data_quick['sticky_post']='0';
+            }
+            update_data_quick['kategori_post']=$('tr.quick-edit').find('input:radio[name=kategori_post]:checked').val();
+            update_data_quick['tags_post']=$('textarea.quick_tag_post').val().split(",");
+
+            console.log(update_data_quick);
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_post/post_quick_bulk_edit') ?>",
+                data: {
+                    ajax:'4',
+                    quick_data:JSON.stringify(update_data_quick)
+                },
+                beforeSend:function(){
+                    $('img.loading-img').show();
+                },
+                dataType:"html",
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(data){
+                    console.log(data);
+                    setTimeout(function() {
+                        current.parents('tr').prev().replaceWith(data);
+                        current.parents('tr').prev().animate({backgroundColor: '#ccf1cd'});
+                        current.parents('tr').prev().animate({backgroundColor: 'white'});
+                        current.parents('tr').prev().show();
+                        $('tr.quick-edit').hide(); 
+                        $('img.loading-img').hide();
+                    }, 500);
+                }
+            });
+        });
+
+
+
+        $(document).on('click','button.post_bulk_update',function(){  
+            var update_bulk_data={},id_bulk=[];
+            if ($('a.clstag').length) {
+                $('a.clstag').each(function() {
+                    id_bulk.push($(this).attr('id_post'));
+                });     
+                update_bulk_data['id_post']=id_bulk;
+            }else{update_bulk_data['id_post']=false;}
+
+            if ($('tr.massal-edit').find('input:radio[name=kategori_post]').is(':checked')) {
+                update_bulk_data['kategori_post']=$('tr.massal-edit').find('input:radio[name=kategori_post]:checked').val();
+            }else{update_bulk_data['kategori_post']=false;}
+
+            if ($('textarea.bulk_tag_post').val()!="") {
+                update_bulk_data['tags_post']=$('textarea.bulk_tag_post').val().split(",");
+            }else{update_bulk_data['tags_post']=false;}
+
+
+            if ($('select.bulk_sticky_post').val()=="none") {update_bulk_data['sticky_post']=null;}
+                else{update_bulk_data['sticky_post']=$('select.bulk_sticky_post').val();}
+            if ($('select.bulk_komen_post').val()=="none") {update_bulk_data['komen_post']=null;}
+                else{update_bulk_data['komen_post']=$('select.bulk_komen_post').val();}
+            if ($('select.bulk_status_post').val()=="none") {update_bulk_data['status_post']=false;}
+                else{update_bulk_data['status_post']=$('select.bulk_status_post').val();}
+            console.log(update_bulk_data);
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_post/post_quick_bulk_edit') ?>",
+                data: {
+                    ajax:'5',
+                    bulk_data:JSON.stringify(update_bulk_data)
+                },
+
+                beforeSend:function(){
+                    $('img.loading-img').show();
+                },
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(){
+                    location.reload();
+                }
+            });
+        });
+
+
+
+        $(document).on('click','.btn-bulk',function(){ 
+            var pil=$('#bulk-post').val();
+            var selected= [];
+            if (pil=='edit_post') {
+
+                $("input:checkbox[name=check-post]:checked" ).each(function() {
+                    selected.push([$(this).parents('tr').attr('id'),$(this).parents('tr').find('a.judul_post').text().split("-")[0]]);
+                });
+                if (selected.length>0) {
+                    $('tr.quick-edit').hide();
+                    $('tr.quick-edit').prev().show(); 
+                    $('tr.massal-edit').show();
+                    $('tr.massal-edit').prop('value', selected);
+                    $('div.list-tags').empty();
+                    for (var i = 0; i < selected.length; i++) {
+                        var judul='<div><a href="javascript:void(0);" class="fa fa-times-circle-o fa-fw clstag" id_post='+selected[i][0]+'></a><span> '+selected[i][1]+'</span></div>';
+                        $('div.list-tags').append(judul);
+                    };
+                };
+            }
+            else if(pil=="trash_post"){
+                $("input:checkbox[name=check-post]:checked" ).each(function() {
+                    selected.push($(this).parents('tr').attr('id'));
+                });
+                if (selected.length>0) {
+                    $.ajax({
+                        type:'POST',
+                        url:"<?php echo base_url('admin/proses_post/ke_trash') ?>",
+                        data: {
+                            ajax:'6',
+                            trash_data:JSON.stringify(selected)
+                        },
+                        beforeSend:function(){
+                            $('img.loading-img').show();
+                        },
+                        error: function(xhr, status, error) {
+                            alert(xhr.responseText);
+                        },
+                        success:function(){
+                            location.reload();
+                        }
+                    });
+                    console.log(JSON.stringify(selected));
+                };                
+            }
+
+        });
+
+
+        $(document).on('click','a.trash_post_a',function(){        
+            var selected= [];
+            selected.push($(this).parents('tr').attr('id'));
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_post/ke_trash') ?>",
+                data: {
+                    ajax:'7',
+                    trash_data:JSON.stringify(selected)
+                },
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(){
+                    location.reload();
+                }
+            });
+        });
+
+
+        $(document).on('click','.batal-quick-edit',function(){  
+            $(this).parents('tr').prev().show();
+            $('tr.quick-edit').hide();      
+        });
+
+
+        $(document).on('click','.batal-massal-edit',function(){        
+            $('tr.massal-edit').hide();
+        });
+
+
+        $(document).on('click','.clstag',function(){        
+            $(this).parent().remove();
+        });
+
+
+        $(document).on('click change','input:checkbox[name=check-all]',function(){        
+            if ($('input:checkbox[name=check-all]').is(':checked')) {
+                $("input:checkbox[name=check-all]").prop('checked', this.checked);
+                $("input:checkbox[name=check-post]").prop('checked', this.checked);
+            };
+        });
+
+
+        order=$('input.arrow-kondisi').attr('order');
+        kolom=$('input.arrow-kondisi').attr('kolom');
+
+        function arrow_sort(elm_sort,elm_n_sort,j_sort,j_n_sort){
+            $(elm_sort).addClass(j_sort);
+            $(elm_n_sort).addClass('fa-unsorted');
+            $(elm_sort).removeClass('fa-unsorted '+j_n_sort);
+            $(elm_n_sort).romoveClass('fa-sort-asc fa-sort-desc');            
+        }
+        
+        if (order=='desc' && kolom=='judul_post') {
+            arrow_sort('i.judul-arrow','i.waktu-arrow','fa-sort-desc','fa-sort-asc');
+        }
+        else if(order=='asc' && kolom=='judul_post'){
+            arrow_sort('i.judul-arrow','i.waktu-arrow','fa-sort-asc','fa-sort-desc');
+        }
+        else if(order=='asc' && kolom=='waktu_post'){
+            arrow_sort('i.waktu-arrow','i.judul-arrow','fa-sort-asc','fa-sort-desc');
+        }
+        else if(order=='desc' && kolom=='waktu_post'){
+            arrow_sort('i.waktu-arrow','i.judul-arrow','fa-sort-desc','fa-sort-asc');
+        }         
+
+        var list='button.btn-list',detail='button.btn-detail';
+        $(document).on('click',list,function(){        
+            localStorage.setItem("view_post", 'btn-list');
+            btn_list();
+        });
+        $(document).on('click',detail,function(){        
+            localStorage.setItem("view_post", 'btn-detail');
+            btn_detail();
+        });
+
+        var view_post=localStorage.getItem("view_post");
+        if (view_post!=null) {
+            if (view_post=='btn-list') {
+                btn_list();
+            }else{
+                btn_detail();
+            }
+        }else{btn_list();}
+
+        function btn_list(){
+            $('button.btn-detail').removeClass('active');
+            $(list).addClass('active');   
+            $('p.isi_post_quick').hide();
+        }
+        function btn_detail(){
+            $('button.btn-list').removeClass('active');
+            $(detail).addClass('active');
+            $('p.isi_post_quick').show();             
+        }
+
+
+
+///////////////////////////////////post-new///////////////////////////////////////////
+
+        function status_text(text,thix){
+            $('#post-n-status').empty();
+            $('#post-n-status').text(text);
+            $('.ppublished').collapse('hide');
+            thix.parent().prev().find('a').show();  
+        }
+
+        function btn_save(atr,text){
+            $('button.btn-save-draft').empty();
+            $('button.btn-save-draft').attr('jenis', atr);
+            $('button.btn-save-draft').text(text);    
+        }
+
+        if ($('#public-click').is(':checked')) {
+            $('.ppass').collapse('hide');  
+            $('.ppublic').collapse('show');
+        };
+
+        if ($('#pass-click').is(':checked')) {
+            $('.ppass').collapse('show');  
+            $('.ppublic').collapse('hide');
+        };
+
+        $(document).on('click','button.post-n-status-btn',function(){  
+            if ($('select[name=ppublished]').val()=='draft') {
+                status_text('Draft',$(this));
+                btn_save('draft','Save Draft');
+            }else if ($('select[name=ppublished]').val()=='pending') {
+                status_text('Pending Preview',$(this));
+                btn_save('pending','Save as Pending');
+            };
+            
+        });
+
+        $(document).on('click','button.post-n-visi-btn',function(){  
+            if ($('#public-click').is(':checked')) {
+                if ($('input.post-n-stick').is(':checked')) {
+                    $('#post-n-visi').empty();
+                    $('#post-n-visi').text('Public, Sticky');
+                }else{
+                    $('#post-n-visi').empty();
+                    $('#post-n-visi').text('Public'); 
+                }
+                $('#pvisibility').collapse('hide');
+                $(this).parent().prev().find('a').show();
+            }else if ($('select[name=ppublished]').val()=='pending') {
+                status_text('Pending Preview',$(this));
+            };
+            
+        });
+
+
+        $(document).on('click','#public-click',function(){  
+            $('.ppass').collapse('hide');   
+            $('input.post-n-input-pass').val(''); 
+        });
+
+
+        $(document).on('click','#pass-click',function(){  
+            $('.ppublic').collapse('hide');   
+            $('input.post-n-stick').prop('checked', false);
+        });
+
+        $(document).on('click','.btn-edit',function(){  
+            $(this).hide();
+            $('.btn-cancel').show();
+            $('#public-click').prop('checked', true);
+            $('.ppublic').collapse('show'); 
+            $('.ppass').collapse('hide'); 
+            $('input.post-n-stick').prop('checked', false);
+            $('input.post-n-input-pass').val(''); 
+        });
+
+
+        $(document).on('click','.btn-cancel',function(){  
+            $(this).parent().prev().find('a').show();
+        });
+
+
+        $(document).on('click','button.post-n-tag-btn',function(){  
+            var tag=$(this).prev().val();
+            if ($.trim(tag)!='') {
+                $(this).prev().val('');
+                $('div.post-n-list-tags').append('<span><a href="javascript:void(0);" class="fa fa-times-circle-o clstag post-n-clstag" value="'+tag+'"></a><span> '+tag+'</span>&nbsp;&nbsp;&nbsp;</span>');
+            }  
+        });
+
+        $(document).on('click','a.post-n-clstag',function(){  
+            $(this).parent().remove();
+        });
+
+        $(document).on('click','button.post-n-kategori-btn',function(){  
+            var kategori=$(this).prev().val();
+            $.ajax({
+                type:'POST',
+                url:"<?php echo base_url('admin/proses_post_new/get_kategori') ?>",
+                data: {
+                    ajax:'8',
+                    kategori
+                },
+                dataType:"html",
+                error: function(xhr, status, error) {
+                    alert(xhr.responseText);
+                },
+                success:function(kategori){
+                    console.log(kategori);
+                    $('div.panel-kategori').append(kategori);
+                    $('div.panel-kategori').find('p').last().animate({backgroundColor: '#ccf1cd'});
+                    $('div.panel-kategori').find('p').last().animate({backgroundColor: 'white'});
+                }
+            }); 
+        });
+
+        $(document).on('click','i.fa-minimize',function(){  
+            if ($(this).hasClass('fa-caret-up')) {
+                $(this).removeClass('fa-caret-up');
+                $(this).addClass('fa-caret-down');
+            }else{
+                $(this).removeClass('fa-caret-down');
+                $(this).addClass('fa-caret-up');
+            }
+        });
+});
